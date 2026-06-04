@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Σύγχρονες Γεωργικές Επιχειρήσεις - Τομείς Παραγωγής</title>
+    <style>
+        :root {
+            --zoom-factor: 1;
+            --primary-teal: #0d9488;
+            --primary-green: #16a34a;
+            --accent-brown: #b45309;
+            --bg-gradient: linear-gradient(135deg, #f0fdf4 0%, #fefcbf 100%);
+            --museum-wall: #ccfbf1;
+            --museum-floor: #d97706;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+            color: #1e293b;
+            padding: 10px;
+        }
+
+        /* Κεφαλίδα */
+        header {
+            text-align: center;
+            margin-bottom: 8px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #0f766e;
+            font-size: clamp(1.2rem, 4vw, 1.8rem);
+            margin-bottom: 4px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .subtitle {
+            font-size: clamp(0.78rem, 2.5vw, 0.95rem);
+            color: #475569;
+            font-weight: 500;
+        }
+
+        /* Χειριστήρια & Zoom */
+        .controls-panel {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            align-items: center;
+            background: white;
+            padding: 6px 12px;
+            border-radius: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            z-index: 10;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .control-btn {
+            background: #f1f5f9;
+            border: 2px solid #cbd5e1;
+            color: #334155;
+            padding: 5px 10px;
+            font-size: clamp(0.72rem, 2vw, 0.9rem);
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .control-btn:hover {
+            background: var(--primary-teal);
+            color: white;
+            border-color: var(--primary-teal);
+            transform: translateY(-1px);
+        }
+
+        .zoom-label {
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #64748b;
+            margin-right: 3px;
+        }
+
+        /* Περιοχή Παιχνιδιού με Zoom */
+        .game-viewport {
+            width: 100%;
+            max-width: 1024px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .game-scale-wrapper {
+            transform: scale(var(--zoom-factor));
+            transform-origin: top center;
+            transition: transform 0.1s ease-out;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Στατικό Μουσείο/Έκθεση Γεωργίας */
+        .museum-room {
+            width: 100%;
+            max-width: 860px;
+            height: 380px;
+            background: var(--museum-wall);
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+            border: 6px solid white;
+            transition: height 0.2s ease;
+        }
+
+        /* Προσαρμογή ύψους για οθόνες κινητών */
+        @media (max-width: 640px) {
+            .museum-room {
+                height: 250px;
+            }
+        }
+
+        /* Ψευδαίσθηση βάθους στους τοίχους (Προοπτική) */
+        .museum-room::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 12%;
+            height: 100%;
+            background: linear-gradient(to right, rgba(0,0,0,0.1), transparent);
+            border-right: 2px dashed rgba(255,255,255,0.3);
+            z-index: 1;
+        }
+
+        .museum-room::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 12%;
+            height: 100%;
+            background: linear-gradient(to left, rgba(0,0,0,0.1), transparent);
+            border-left: 2px dashed rgba(255,255,255,0.3);
+            z-index: 1;
+        }
+
+        /* Γήινο/Ξύλινο Πάτωμα με κλίση */
+        .museum-floor {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 40%;
+            background: repeating-linear-gradient(90deg, #d97706 0px, #d97706 45px, #b45309 46px, #b45309 90px);
+            border-top: 8px solid #a16207;
+            box-shadow: inset 0 8px 12px rgba(0,0,0,0.2);
+        }
+
+        /* Επιγραφή Έκθεσης */
+        .museum-banner {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 8px 20px;
+            border-radius: 8px;
+            border: 3px solid var(--accent-brown);
+            font-weight: bold;
+            font-size: clamp(0.65rem, 2.2vw, 1.1rem);
+            color: #0f766e;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            z-index: 2;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .museum-painting {
+            position: absolute;
+            top: 30px;
+            width: clamp(45px, 11vw, 80px);
+            height: clamp(60px, 15vw, 100px);
+            background: #fff;
+            border: 4px solid #475569;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(1rem, 3.5vw, 2rem);
+            z-index: 2;
+        }
+
+        .painting-left { left: 20px; transform: rotate(-3deg); }
+        .painting-right { right: 20px; transform: rotate(3deg); }
+
+        /* Οι 3 Προθήκες των Τομέων (Πλήρως Responsive Σχεδιασμός) */
+        .pedestals-container {
+            position: absolute;
+            bottom: 12px;
+            left: 2%;
+            width: 96%;
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            z-index: 3;
+            gap: 6px;
+        }
+
+        .pedestal-showcase {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            max-width: 250px;
+            min-width: 70px;
+            position: relative;
+        }
+
+        /* Γυάλινος θόλος προθήκης */
+        .glass-dome {
+            width: 95%;
+            max-width: 140px;
+            height: clamp(65px, 18vw, 125px);
+            background: rgba(224, 242, 254, 0.25);
+            border: 3px solid rgba(255, 255, 255, 0.6);
+            border-bottom: none;
+            border-radius: 60px 60px 0 0;
+            backdrop-filter: blur(2.5px);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 8px 16px rgba(255,255,255,0.4), 0 -4px 10px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        /* Εφέ όταν σέρνουμε αντικείμενο πάνω από την προθήκη */
+        .pedestal-showcase.drag-hover .glass-dome {
+            background: rgba(34, 197, 94, 0.25);
+            border-color: var(--primary-green);
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
+            transform: scale(1.03);
+        }
+
+        /* Το βάθρο */
+        .pedestal-base {
+            width: 100%;
+            min-height: clamp(50px, 12vw, 75px);
+            background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+            border: 3px solid #14b8a6;
+            border-radius: 6px 6px 10px 10px;
+            box-shadow: 0 8px 12px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #f8fafc;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            border-top: 5px solid #2dd4bf;
+            padding: 2px 4px;
+            text-align: center;
+        }
+
+        .sector-title {
+            font-size: clamp(0.48rem, 1.8vw, 0.85rem);
+            font-weight: bold;
+            color: #fef08a;
+            margin-bottom: 2px;
+            line-height: 1.1;
+        }
+
+        .sector-subtitle {
+            font-size: clamp(0.38rem, 1.4vw, 0.68rem);
+            opacity: 0.9;
+            line-height: 1.1;
+        }
+
+        /* Τα Αντικείμενα (Εργαλειοθήκη) */
+        .items-shelf {
+            width: 100%;
+            max-width: 860px;
+            background: white;
+            border-radius: 20px;
+            padding: clamp(10px, 3vw, 20px);
+            margin-top: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            border: 4px solid var(--primary-teal);
+        }
+
+        .shelf-title {
+            text-align: center;
+            font-weight: bold;
+            color: #0f766e;
+            margin-bottom: 15px;
+            font-size: clamp(0.85rem, 3vw, 1.1rem);
+        }
+
+        .items-grid {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: clamp(6px, 1.8vw, 12px);
+            min-height: 80px;
+        }
+
+        /* 2D Αντικείμενα */
+        .museum-item {
+            width: clamp(48px, 10vw, 72px);
+            height: clamp(48px, 10vw, 72px);
+            background: #f8fafc;
+            border: 3px solid #e2e8f0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(1.4rem, 3.5vw, 2.1rem);
+            cursor: grab;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+            transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+            touch-action: none;
+            position: relative;
+            z-index: 5;
+        }
+
+        .museum-item:hover {
+            transform: scale(1.08);
+            border-color: var(--primary-teal);
+            box-shadow: 0 5px 10px rgba(13, 148, 136, 0.2);
+        }
+
+        .museum-item.dragging {
+            opacity: 0.95;
+            cursor: grabbing;
+            transform: scale(1.15) !important;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3) !important;
+            z-index: 999999 !important;
+            pointer-events: none;
+        }
+
+        /* TOOLTIPS */
+        .museum-item::after {
+            content: attr(data-title);
+            position: absolute;
+            top: -38px;
+            left: 50%;
+            transform: translateX(-50%) translateY(5px);
+            background: #1e293b;
+            color: #ffffff;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.12s ease, transform 0.12s ease;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+            z-index: 999;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .museum-item::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%) translateY(5px);
+            border-width: 5px;
+            border-style: solid;
+            border-color: #1e293b transparent transparent transparent;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.12s ease, transform 0.12s ease;
+            z-index: 999;
+        }
+
+        @media (hover: hover) {
+            .museum-item:hover::after,
+            .museum-item:hover::before {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        .museum-item.dragging::after,
+        .museum-item.dragging::before {
+            display: none !important;
+        }
+
+        /* Πληροφοριακό Πάνελ */
+        .info-panel {
+            width: 100%;
+            max-width: 860px;
+            background: #f0fdf4;
+            border-left: 6px solid var(--primary-green);
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            min-height: 65px;
+        }
+
+        .info-icon {
+            font-size: clamp(1.5rem, 4vw, 2.2rem);
+        }
+
+        .info-text {
+            font-size: clamp(0.8rem, 2.2vw, 1rem);
+            color: #1e293b;
+            line-height: 1.4;
+        }
+
+        /* Αναδυόμενο Παράθυρο Επιτυχίας */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(6px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            padding: 15px;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: clamp(15px, 4vw, 30px);
+            max-width: 520px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border: 6px solid var(--primary-green);
+            animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.85); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-title {
+            color: #15803d;
+            font-size: clamp(1.2rem, 4vw, 1.7rem);
+            margin-bottom: 8px;
+        }
+
+        .modal-body {
+            font-size: clamp(0.8rem, 2.5vw, 1rem);
+            color: #475569;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        /* Φόρμα Επιχειρηματικού Σχεδίου */
+        .dedication-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            text-align: left;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .form-group label {
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #334155;
+        }
+
+        .form-group input, .form-group textarea {
+            padding: 8px 12px;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
+            border-color: var(--primary-teal);
+            outline: none;
+        }
+
+        .submit-btn {
+            background: var(--primary-green);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(34, 197, 94, 0.2);
+            transition: all 0.2s;
+        }
+
+        .submit-btn:hover {
+            background: #16a34a;
+            transform: translateY(-2px);
+        }
+
+        /* Άδεια Ίδρυσης */
+        .certificate-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            z-index: 20000;
+            padding: 30px 15px;
+            overflow-y: auto;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .certificate {
+            max-width: 650px;
+            width: 100%;
+            background: #fdfdfd;
+            border: 15px double var(--accent-brown);
+            padding: clamp(20px, 5vw, 40px);
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            position: relative;
+            background-image: radial-gradient(circle, #fcfbe7 0%, #fefcf3 100%);
+        }
+
+        .cert-header-text {
+            font-family: 'Times New Roman', Georgia, serif;
+            font-size: 0.8rem;
+            letter-spacing: 1.5px;
+            color: #475569;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .cert-title {
+            font-family: 'Georgia', serif;
+            font-size: clamp(1.3rem, 4vw, 2rem);
+            color: #78350f;
+            margin-bottom: 20px;
+            border-bottom: 3px double #b45309;
+            padding-bottom: 12px;
+        }
+
+        .cert-text {
+            font-size: clamp(0.9rem, 2.5vw, 1.15rem);
+            line-height: 1.6;
+            color: #1e293b;
+            margin-bottom: 20px;
+        }
+
+        .cert-items {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .cert-item-icon {
+            font-size: clamp(2rem, 5vw, 3rem);
+            background: #fff;
+            width: clamp(60px, 15vw, 90px);
+            height: clamp(60px, 15vw, 90px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: 3px solid var(--accent-brown);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .cert-footer {
+            font-size: clamp(0.85rem, 2vw, 1.05rem);
+            font-style: italic;
+            color: #475569;
+            margin-top: 25px;
+            border-top: 2px dashed #cbd5e1;
+            padding-top: 15px;
+        }
+
+        .cert-actions {
+            margin-top: 25px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            max-width: 650px;
+        }
+
+        /* Ιστορικό / Αρχείο Αδειών Τάξης */
+        .archive-section {
+            margin-top: 40px;
+            width: 100%;
+            max-width: 650px;
+            border-top: 4px solid var(--primary-teal);
+            padding-top: 25px;
+        }
+
+        .archive-title {
+            text-align: center;
+            font-size: clamp(1.1rem, 3vw, 1.4rem);
+            color: #0f766e;
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .archive-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+
+        @media (min-width: 600px) {
+            .archive-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .archive-card {
+            background: #fdfcf7;
+            border: 3px double var(--accent-brown);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+
+        .archive-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary-teal);
+            box-shadow: 0 10px 20px rgba(180, 83, 9, 0.15);
+        }
+
+        .archive-card-header {
+            font-family: 'Georgia', serif;
+            font-size: 1rem;
+            font-weight: bold;
+            color: #78350f;
+            border-bottom: 1px dashed #b45309;
+            padding-bottom: 4px;
+        }
+
+        .archive-card-founders {
+            font-size: 0.8rem;
+            color: #475569;
+            font-weight: 600;
+        }
+
+        .archive-card-emojis {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin: 4px 0;
+        }
+
+        .archive-card-emoji {
+            background: white;
+            border: 1px solid #cbd5e1;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 1.1rem;
+        }
+
+        .archive-card-vision {
+            font-size: 0.78rem;
+            font-style: italic;
+            color: #1e293b;
+            background: #f1f5f9;
+            padding: 6px;
+            border-radius: 6px;
+            line-height: 1.3;
+        }
+
+        /* Ψευδο-Πλήρης Οθόνη ως Fallback */
+        .pseudo-fullscreen-active {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            background: var(--bg-gradient) !important;
+            z-index: 99999 !important;
+            padding: 10px !important;
+            overflow-y: auto !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+        }
+
+        /* Εφέ κομφετί */
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #f00;
+            animation: fire 3s ease-out infinite;
+            z-index: 999;
+        }
+
+        @keyframes fire {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <header id="mainHeader">
+        <h1>🌾 Σύγχρονες Γεωργικές Επιχειρήσεις</h1>
+        <p class="subtitle">Ταξινομήστε τα στοιχεία της επιχείρησης στους 3 Τομείς Παραγωγής για να ξεκινήσετε τη λειτουργία της!</p>
+    </header>
+
+    <!-- App Wrapper -->
+    <div id="appContainer" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+        <!-- Χειριστήρια -->
+        <div class="controls-panel">
+            <span class="zoom-label">Επιλογές:</span>
+            <button class="control-btn" onclick="adjustZoom(-0.1)">➖ Σμίκρυνση</button>
+            <button class="control-btn" onclick="adjustZoom(0.1)">➕ Μεγέθυνση</button>
+            <button class="control-btn" onclick="resetZoom()">🔄 Επαναφορά</button>
+            <button id="fullscreenBtn" class="control-btn" onclick="toggleFullscreen()" style="background-color: #e2f5e9; border-color: #86efac; color: #15803d;">🖥️ Πλήρης Οθόνη</button>
+            <button class="control-btn" onclick="resetMuseum()" style="background-color: #fee2e2; border-color: #fca5a5; color: #991b1b;">🗑️ Καθαρισμός</button>
+        </div>
+
+        <!-- Κύρια Περιοχή Παιχνιδιού -->
+        <div class="game-viewport">
+            <div class="game-scale-wrapper" id="scaleWrapper">
+                
+                <!-- Η Έκθεση Γεωργικής Επιχείρησης -->
+                <div class="museum-room" id="museumRoom">
+                    
+                    <div class="museum-banner">🚜 ΜΟΝΤΕΛΟ ΚΑΘΕΤΟΠΟΙΗΜΕΝΗΣ ΠΑΡΑΓΩΓΗΣ 🚜</div>
+                    <div class="museum-painting painting-left">🍏</div>
+                    <div class="museum-painting painting-right">🍇</div>
+
+                    <div class="museum-floor"></div>
+
+                    <!-- Προθήκες/Βάθρα Τομέων Παραγωγής -->
+                    <div class="pedestals-container">
+                        
+                        <!-- Πρωτογενής Τομέας -->
+                        <div class="pedestal-showcase" id="ped1" data-ped-index="1" data-accepted-sector="1">
+                            <div class="glass-dome"></div>
+                            <div class="pedestal-base">
+                                <span class="sector-title">ΠΡΩΤΟΓΕΝΗΣ ΤΟΜΕΑΣ</span>
+                                <span class="sector-subtitle">Καλλιέργεια & Εκτροφή</span>
+                            </div>
+                        </div>
+
+                        <!-- Δευτερογενής Τομέας -->
+                        <div class="pedestal-showcase" id="ped2" data-ped-index="2" data-accepted-sector="2">
+                            <div class="glass-dome"></div>
+                            <div class="pedestal-base">
+                                <span class="sector-title">ΔΕΥΤΕΡΟΓΕΝΗΣ ΤΟΜΕΑΣ</span>
+                                <span class="sector-subtitle">Μεταποίηση & Τυποποίηση</span>
+                            </div>
+                        </div>
+
+                        <!-- Τριτογενής Τομέας -->
+                        <div class="pedestal-showcase" id="ped3" data-ped-index="3" data-accepted-sector="3">
+                            <div class="glass-dome"></div>
+                            <div class="pedestal-base">
+                                <span class="sector-title">ΤΡΙΤΟΓΕΝΗΣ ΤΟΜΕΑΣ</span>
+                                <span class="sector-subtitle">Υπηρεσίες & Εμπόριο</span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- Πληροφορίες Συμβόλου -->
+                <div class="info-panel" id="infoPanel">
+                    <span class="info-icon" id="infoIcon">💡</span>
+                    <span class="info-text" id="infoText">Σύρετε ένα στοιχείο από την παρακάτω βιβλιοθήκη στην κατάλληλη προθήκη (Πρωτογενή, Δευτερογενή ή Τριγενή Τομέα) για να δείτε τον ρόλο του στη γεωργική επιχείρηση!</span>
+                </div>
+
+                <!-- Βιβλιοθήκη Αντικειμένων (Ακριβώς 12 Μοναδικά Στοιχεία) -->
+                <div class="items-shelf">
+                    <div class="shelf-title">📦 Στοιχεία της Επιχείρησης (Τοποθετήστε 1 σωστό σε κάθε τομέα)</div>
+                    <div class="items-grid" id="itemsGrid">
+                        
+                        <!-- ΠΡΩΤΟΓΕΝΗΣ (Sector 1) -->
+                        <div class="museum-item" id="item-tractor" data-emoji="🚜" data-title="Τρακτέρ" data-sector="1" data-desc="🚜 Τρακτέρ: Ανήκει στον Πρωτογενή Τομέα. Χρησιμοποιείται για την προετοιμασία του εδάφους και τη συγκομιδή των προϊόντων.">🚜</div>
+                        <div class="museum-item" id="item-sheep" data-emoji="🐑" data-title="Κτηνοτροφία" data-sector="1" data-desc="🐑 Κτηνοτροφία: Ανήκει στον Πρωτογενή Τομέα. Αφορά την εκτροφή ζώων για την παραγωγή γάλακτος, μαλλιού και κρέατος.">🐑</div>
+                        <div class="museum-item" id="item-fishing" data-emoji="🐟" data-title="Αλιεία (ψάρεμα)" data-sector="1" data-desc="🐟 Αλιεία (ψάρεμα): Ανήκει στον Πρωτογενή Τομέα. Η συλλογή ψαριών και θαλασσινών από τη θάλασσα ή λίμνες.">🐟</div>
+                        <div class="museum-item" id="item-vineyard" data-emoji="🍇" data-title="Αμπελώνας" data-sector="1" data-desc="🍇 Αμπελώνας: Ανήκει στον Πρωτογενή Τομέα. Η καλλιέργεια κλημάτων για την παραγωγή και συγκομιδή σταφυλιών.">🍇</div>
+                        
+                        <!-- ΔΕΥΤΕΡΟΓΕΝΗΣ (Sector 2) -->
+                        <div class="museum-item" id="item-cheese" data-emoji="🧀" data-title="Τυροκομείο" data-sector="2" data-desc="🧀 Τυροκομείο: Ανήκει στον Δευτερογενή Τομέα. Μεταποιεί το γάλα της κτηνοτροφίας για την παραγωγή τυριού.">🧀</div>
+                        <div class="museum-item" id="item-winery" data-emoji="🍷" data-title="Οινοποιείο" data-sector="2" data-desc="🍷 Οινοποιείο: Ανήκει στον Δευτερογενή Τομέα. Μεταποιεί τα σταφύλια του αμπελώνα και παράγει κρασί.">🍷</div>
+                        <div class="museum-item" id="item-mill" data-emoji="🍞" data-title="Αλευρόμυλος / Φούρνος" data-sector="2" data-desc="🍞 Αλευρόμυλος & Φούρνος: Ανήκει στον Δευτερογενή Τομέα. Μεταποιεί τα σιτηρά (σιτάρι) σε αλεύρι και στη συνέχεια σε ψωμί.">🍞</div>
+                        <div class="museum-item" id="item-fishpack" data-emoji="🥫" data-title="Κονσερβοποιία Ψαριών" data-sector="2" data-desc="🥫 Κονσερβοποιία: Ανήκει στον Δευτερογενή Τομέα. Μεταποιεί και τυποποιεί τα ψάρια της αλιείας, σφραγίζοντάς τα σε κονσέρβες.">🥫</div>
+                        
+                        <!-- ΤΡΙΤΟΓΕΝΗΣ (Sector 3) -->
+                        <div class="museum-item" id="item-eshop" data-emoji="💻" data-title="E-shop" data-sector="3" data-desc="💻 E-shop: Ανήκει στον Τριτογενή Τομέα. Παροχή ψηφιακών υπηρεσιών πωλήσεων και marketing για τη διάθεση των προϊόντων.">💻</div>
+                        <div class="museum-item" id="item-agrotourism" data-emoji="🏡" data-title="Αγροτουρισμός" data-sector="3" data-desc="🏡 Αγροτουρισμός: Ανήκει στον Τριτογενή Τομέα. Παροχή υπηρεσιών φιλοξενίας, εστίασης και ξενάγησης στο αγρόκτημα.">🏡</div>
+                        <div class="museum-item" id="item-delivery" data-emoji="🚚" data-title="Διανομή-Μεταφορά" data-sector="3" data-desc="🚚 Διανομή-Μεταφορά: Ανήκει στον Τριτογενή Τομέα. Αφορά τη διανομή, τη μεταφορά και την παράδοση των προϊόντων της επιχείρησης στους πελάτες.">🚚</div>
+                        <div class="museum-item" id="item-shop" data-emoji="🏪" data-title="Κατάστημα Πώλησης" data-sector="3" data-desc="🏪 Κατάστημα Πώλησης: Ανήκει στον Τριτογενή Τομέα. Το φυσικό σημείο λιανικής πώλησης όπου οι καταναλωτές αγοράζουν απευθείας τα προϊόντα της επιχείρησης.">🏪</div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Παράθυρο Επιτυχίας -->
+    <div class="modal-overlay" id="successModal">
+        <div class="modal-content">
+            <h2 class="modal-title">🎉 Συγχαρητήρια!</h2>
+            <p class="modal-body">Ταξινομήσατε επιτυχώς τους τομείς παραγωγής! Η νέα σας πρότυπη Γεωργική Επιχείρηση είναι έτοιμη να λάβει την επίσημη άδεια λειτουργίας της.</p>
+            
+            <div class="dedication-form">
+                <div class="form-group">
+                    <label for="teacherName">Επωνυμία Γεωργικής Επιχείρησης:</label>
+                    <input type="text" id="teacherName" placeholder="π.χ. Πρότυπος Ελαιώνας 'Ηλιος' ή Αγρόκτημα Μακεδονίας" required>
+                </div>
+                <div class="form-group">
+                    <label for="studentName">Ονόματα Ιδρυτών (Μαθητές / Ομάδα):</label>
+                    <input type="text" id="studentName" placeholder="π.χ. Μαρία, Νίκος & Ελένη (Τμήμα Α1)" required>
+                </div>
+                <div class="form-group">
+                    <label for="dedicationText">Επιχειρηματικός Στόχος & Όραμα:</label>
+                    <textarea id="dedicationText" rows="3" placeholder="π.χ. Παραγωγή, τυποποίηση και εξαγωγή βιολογικών προϊόντων εξαιρετικής ποιότητας..."></textarea>
+                </div>
+            </div>
+
+            <button class="submit-btn" onclick="generateCertificate()">🎨 Έκδοση Άδειας Λειτουργίας</button>
+        </div>
+    </div>
+
+    <!-- Η Άδεια Λειτουργίας & Το Αρχείο της Τάξης -->
+    <div class="certificate-container" id="certificateContainer">
+        <div class="certificate">
+            <p class="cert-header-text">Ελληνική Δημοκρατία - Υπουργείο Αγροτικής Ανάπτυξης</p>
+            <h2 class="cert-title">📜 Άδεια Ίδρυσης & Λειτουργίας</h2>
+            <p class="cert-text" style="font-size: 1.3rem; font-weight: bold; color: var(--primary-teal);">Εγκρίνεται η λειτουργία της επιχείρησης:</p>
+            <p class="cert-text" id="certTeacher" style="font-size: 2.1rem; font-weight: bold; color: #78350f; margin-top: -15px;">[Όνομα Επιχείρησης]</p>
+            
+            <p class="cert-text">Η επιχείρηση εφαρμόζει επιτυχώς το μοντέλο καθετοποιημένης παραγωγής στους 3 Τομείς:</p>
+            
+            <div class="cert-items" id="certItems">
+                <!-- Θα γεμίσει δυναμικά -->
+            </div>
+
+            <p class="cert-text" id="certMessage" style="font-style: italic; background: rgba(255,255,255,0.7); padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">"[Εδώ θα μπει το επιχειρηματικό όραμα]"</p>
+            
+            <div class="cert-footer">
+                Οι Ιδρυτές και Διαχειριστές της Επιχείρησης:<br>
+                <strong id="certStudent" style="font-size: 1.25rem; color: #1e293b;">[Ονόματα Μαθητών]</strong>
+            </div>
+        </div>
+
+        <!-- Κουμπιά ελέγχου άδειας -->
+        <div class="cert-actions">
+            <button class="control-btn" onclick="printCertificate()" style="background: var(--primary-green); color: white; border-color: var(--primary-green); padding: 12px 24px; font-size: 1.1rem;">🖨️ Εκτύπωση / Αποθήκευση ως PDF</button>
+            <button id="backBtn" class="control-btn" onclick="handleCertClose()" style="padding: 12px 24px; font-size: 1.1rem; background-color: #f1f5f9;">🔙 Νέο Σχέδιο (Επαναφορά)</button>
+            <button class="control-btn" onclick="clearArchiveHistory()" style="background-color: #fee2e2; border-color: #fca5a5; color: #991b1b; padding: 12px 24px; font-size: 1.1rem;">🗑️ Καθαρισμός Ιστορικού</button>
+        </div>
+
+        <!-- Ενότητα Αρχείου Εκδόσεων Τάξης -->
+        <div class="archive-section">
+            <h3 class="archive-title">📜 Αρχείο Επιχειρήσεων της Τάξης</h3>
+            <div class="archive-grid" id="archiveGrid">
+                <!-- Δυναμική φόρτωση καρτών -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Ηχητικά Εφέ με Web Audio API -->
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playTone(freq, duration, type = 'sine') {
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch(e) {
+                // Παράκαμψη
+            }
+        }
+
+        function playPickupSound() {
+            playTone(440, 0.1, 'triangle');
+        }
+
+        function playPlaceSound() {
+            playTone(523.25, 0.15, 'sine');
+            setTimeout(() => playTone(659.25, 0.2, 'sine'), 100);
+        }
+
+        function playErrorSound() {
+            playTone(220, 0.25, 'sawtooth');
+        }
+
+        function playSuccessSound() {
+            const notes = [523.25, 659.25, 783.99, 1046.50];
+            notes.forEach((freq, idx) => {
+                setTimeout(() => playTone(freq, 0.3, 'sine'), idx * 150);
+            });
+        }
+    </script>
+
+    <!-- Μηχανισμός Παιχνιδιού -->
+    <script>
+        let currentZoom = 1.0;
+        let activeDragItem = null;
+        let grabOffsetX = 0;
+        let grabOffsetY = 0;
+        let isViewingArchive = false;
+
+        // Καταγραφή των αντικειμένων που τοποθετήθηκαν
+        const placedItems = {
+            1: null,
+            2: null,
+            3: null
+        };
+
+        // Αρχικές θέσεις για επαναφορά των αντικειμένων στο σωστό σημείο
+        const originalPositions = {};
+
+        const scaleWrapper = document.getElementById('scaleWrapper');
+        const items = document.querySelectorAll('.museum-item');
+        const showcases = document.querySelectorAll('.pedestal-showcase');
+        const infoIcon = document.getElementById('infoIcon');
+        const infoText = document.getElementById('infoText');
+        const successModal = document.getElementById('successModal');
+        const itemsGrid = document.getElementById('itemsGrid');
+        const appContainer = document.getElementById('appContainer');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const archiveGrid = document.getElementById('archiveGrid');
+
+        // Αποθήκευση της αρχικής σειράς των στοιχείων στη βιβλιοθήκη
+        items.forEach((item, index) => {
+            originalPositions[item.id] = index;
+        });
+
+        // Φόρτωση Αρχειοθετημένων Αδειών από το LocalStorage
+        let classArchive = JSON.parse(localStorage.getItem('classLicenses')) || [];
+
+        // Fullscreen API Toggle
+        function toggleFullscreen() {
+            if (!document.fullscreenElement && !isPseudoFullscreen) {
+                document.documentElement.requestFullscreen()
+                .then(() => {
+                    fullscreenBtn.innerHTML = "🖥️ Έξοδος";
+                })
+                .catch(err => {
+                    console.warn("Native Fullscreen blocked by policy. Fallback to pseudo-fullscreen: " + err.message);
+                    enablePseudoFullscreen();
+                });
+            } else {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen().then(() => {
+                        fullscreenBtn.innerHTML = "🖥️ Πλήρης Οθόνη";
+                    });
+                }
+                if (isPseudoFullscreen) {
+                    disablePseudoFullscreen();
+                }
+            }
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement && !isPseudoFullscreen) {
+                fullscreenBtn.innerHTML = "🖥️ Πλήρης Οθόνη";
+            }
+        });
+
+        function enablePseudoFullscreen() {
+            isPseudoFullscreen = true;
+            appContainer.classList.add('pseudo-fullscreen-active');
+            fullscreenBtn.innerHTML = "🖥️ Έξοδος";
+            document.getElementById('mainHeader').style.display = 'none';
+        }
+
+        function disablePseudoFullscreen() {
+            isPseudoFullscreen = false;
+            appContainer.classList.remove('pseudo-fullscreen-active');
+            fullscreenBtn.innerHTML = "🖥️ Πλήρης Οθόνη";
+            document.getElementById('mainHeader').style.display = 'block';
+        }
+
+        // Zoom Controls
+        function adjustZoom(amount) {
+            currentZoom = Math.min(Math.max(currentZoom + amount, 0.5), 1.5);
+            scaleWrapper.style.setProperty('--zoom-factor', currentZoom);
+        }
+
+        function resetZoom() {
+            currentZoom = 1.0;
+            scaleWrapper.style.setProperty('--zoom-factor', currentZoom);
+        }
+
+        // Σύνδεση Pointer Events
+        items.forEach(item => {
+            item.addEventListener('pointerdown', onPointerDown);
+        });
+
+        function onPointerDown(e) {
+            e.preventDefault();
+            playPickupSound();
+
+            activeDragItem = e.currentTarget;
+
+            // Ενημέρωση πληροφοριών
+            infoIcon.innerText = activeDragItem.getAttribute('data-emoji');
+            infoText.innerText = activeDragItem.getAttribute('data-desc');
+
+            const itemRect = activeDragItem.getBoundingClientRect();
+            
+            // Υπολογισμός offset σύρσης
+            grabOffsetX = e.clientX - itemRect.left;
+            grabOffsetY = e.clientY - itemRect.top;
+
+            // Ενεργοποίηση dragging και απόσπαση από το τρέχον container
+            activeDragItem.classList.add('dragging');
+            activeDragItem.style.position = 'fixed';
+            activeDragItem.style.left = `${e.clientX - grabOffsetX}px`;
+            activeDragItem.style.top = `${e.clientY - grabOffsetY}px`;
+            
+            document.body.appendChild(activeDragItem);
+
+            activeDragItem.setPointerCapture(e.pointerId);
+            activeDragItem.addEventListener('pointermove', onPointerMove);
+            activeDragItem.addEventListener('pointerup', onPointerUp);
+        }
+
+        function onPointerMove(e) {
+            if (!activeDragItem) return;
+
+            activeDragItem.style.left = `${e.clientX - grabOffsetX}px`;
+            activeDragItem.style.top = `${e.clientY - grabOffsetY}px`;
+
+            // Γεωμετρική ανίχνευση επικαλύψεων (Bounding Box Collision)
+            const targetShowcase = checkCollisionWithShowcases();
+
+            // Ενημέρωση visual εφέ hover
+            showcases.forEach(showcase => {
+                if (showcase === targetShowcase && !showcase.classList.contains('has-item')) {
+                    showcase.classList.add('drag-hover');
+                } else {
+                    showcase.classList.remove('drag-hover');
+                }
+            });
+        }
+
+        // Απόθεση
+        function onPointerUp(e) {
+            if (!activeDragItem) return;
+
+            activeDragItem.releasePointerCapture(e.pointerId);
+            activeDragItem.removeEventListener('pointermove', onPointerMove);
+            activeDragItem.removeEventListener('pointerup', onPointerUp);
+
+            // Γεωμετρικός έλεγχος σύγκρουσης κατά την απόθεση
+            const targetShowcase = checkCollisionWithShowcases();
+
+            // Αφαίρεση visual hover εφέ
+            showcases.forEach(showcase => showcase.classList.remove('drag-hover'));
+            activeDragItem.classList.remove('dragging');
+
+            if (targetShowcase && !targetShowcase.classList.contains('has-item')) {
+                const pedIndex = targetShowcase.getAttribute('data-ped-index');
+                const acceptedSector = targetShowcase.getAttribute('data-accepted-sector');
+                const itemSector = activeDragItem.getAttribute('data-sector');
+
+                if (itemSector === acceptedSector) {
+                    placeItemInShowcase(activeDragItem, targetShowcase, pedIndex);
+                } else {
+                    playErrorSound();
+                    infoIcon.innerText = "❌";
+                    infoText.innerText = `Το στοιχείο "${activeDragItem.getAttribute('data-title')}" δεν ανήκει εκεί! Προσπαθήστε ξανά. Σκεφτείτε αν αφορά καλλιέργεια/εκτροφή (Πρωτογενής), μεταποίηση (Δευτερογενής) ή παροχή υπηρεσιών (Τριτογενής).`;
+                    returnToLibrary(activeDragItem);
+                }
+            } else {
+                returnToLibrary(activeDragItem);
+            }
+
+            activeDragItem = null;
+            checkGameCompletion();
+        }
+
+        // Γεωμετρική ανίχνευση σύγκρουσης
+        function checkCollisionWithShowcases() {
+            if (!activeDragItem) return null;
+
+            const itemRect = activeDragItem.getBoundingClientRect();
+            const itemCenterX = itemRect.left + itemRect.width / 2;
+            const itemCenterY = itemRect.top + itemRect.height / 2;
+
+            let candidateShowcase = null;
+
+            showcases.forEach(showcase => {
+                const rect = showcase.getBoundingClientRect();
+
+                // 1. Έλεγχος αν το κέντρο είναι μέσα στα όρια
+                const centerInside = (itemCenterX >= rect.left && itemCenterX <= rect.right &&
+                                      itemCenterY >= rect.top && itemCenterY <= rect.bottom);
+
+                // 2. Έλεγχος επικάλυψης
+                const overlapX = Math.max(0, Math.min(itemRect.right, rect.right) - Math.max(itemRect.left, rect.left));
+                const overlapY = Math.max(0, Math.min(itemRect.bottom, rect.bottom) - Math.max(itemRect.top, rect.top));
+                const overlapArea = overlapX * overlapY;
+
+                if (centerInside || overlapArea > (itemRect.width * itemRect.height * 0.25)) {
+                    candidateShowcase = showcase;
+                }
+            });
+
+            return candidateShowcase;
+        }
+
+        // Τοποθέτηση σε προθήκη
+        function placeItemInShowcase(item, showcase, index) {
+            playPlaceSound();
+
+            for (let i in placedItems) {
+                if (placedItems[i] === item) {
+                    placedItems[i] = null;
+                    document.getElementById(`ped${i}`).classList.remove('has-item');
+                }
+            }
+
+            item.style.position = 'static';
+            item.style.left = 'auto';
+            item.style.top = 'auto';
+            const dome = showcase.querySelector('.glass-dome');
+            dome.appendChild(item);
+            showcase.classList.add('has-item');
+            placedItems[index] = item;
+            
+            infoIcon.innerText = "✅";
+            infoText.innerText = `Σωστά! Τοποθετήσατε το στοιχείο "${item.getAttribute('data-title')}" στον κατάλληλο τομέα.`;
+        }
+
+        // Επιστροφή στη βιβλιοθήκη
+        function returnToLibrary(item) {
+            item.style.position = 'static';
+            item.style.left = 'auto';
+            item.style.top = 'auto';
+            
+            const itemIndex = originalPositions[item.id];
+            const siblingItems = Array.from(itemsGrid.children);
+            let inserted = false;
+
+            for (let i = 0; i < siblingItems.length; i++) {
+                const siblingId = siblingItems[i].id;
+                if (originalPositions[siblingId] > itemIndex) {
+                    itemsGrid.insertBefore(item, siblingItems[i]);
+                    inserted = true;
+                    break;
+                }
+            }
+
+            if (!inserted) {
+                itemsGrid.appendChild(item);
+            }
+            
+            for (let i in placedItems) {
+                if (placedItems[i] === item) {
+                    placedItems[i] = null;
+                    document.getElementById(`ped${i}`).classList.remove('has-item');
+                }
+            }
+        }
+
+        // Έλεγχος ολοκλήρωσης
+        function checkGameCompletion() {
+            if (placedItems[1] && placedItems[2] && placedItems[3]) {
+                playSuccessSound();
+                createConfetti();
+                setTimeout(() => {
+                    successModal.style.display = 'flex';
+                }, 800);
+            }
+        }
+
+        // Καθαρισμός
+        function resetMuseum() {
+            for (let i in placedItems) {
+                if (placedItems[i]) {
+                    returnToLibrary(placedItems[i]);
+                }
+            }
+            infoIcon.innerText = "💡";
+            infoText.innerText = "Σύρετε ένα στοιχείο από την παρακάτω βιβλιοθήκη στην κατάλληλη προθήκη (Πρωτογενή, Δευτερογενή ή Τριγενή Τομέα) για να δείτε τον ρόλο του στη γεωργική επιχείρηση!";
+        }
+
+        // Κομφετί
+        function createConfetti() {
+            const colors = ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#a855f7'];
+            for (let i = 0; i < 60; i++) {
+                const c = document.createElement('div');
+                c.classList.add('confetti');
+                c.style.left = `${Math.random() * 100}vw`;
+                c.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                c.style.animationDelay = `${Math.random() * 2}s`;
+                c.style.transform = `scale(${Math.random() * 0.8 + 0.5})`;
+                document.body.appendChild(c);
+                
+                setTimeout(() => c.remove(), 4000);
+            }
+        }
+
+        // Έκδοση Άδειας & Αποθήκευση στο Αρχείο
+        function generateCertificate() {
+            const teacher = document.getElementById('teacherName').value.trim() || 'Πρότυπη Γεωργική Επιχείρηση';
+            const student = document.getElementById('studentName').value.trim() || 'Οι Μαθητές της Τάξης';
+            let message = document.getElementById('dedicationText').value.trim();
+
+            if (!message) {
+                message = "Στόχος της επιχείρησής μας είναι η πλήρης καθετοποίηση της παραγωγής, από το χωράφι έως το ράφι, προσφέροντας υψηλής ποιότητας προϊόντα με απόλυτο σεβασμό στο περιβάλλον.";
+            }
+
+            isViewingArchive = false;
+            document.getElementById('backBtn').innerText = "🔙 Νέο Σχέδιο (Επαναφορά)";
+
+            // Συλλογή των emojis που χρησιμοποιήθηκαν
+            const emoji1 = placedItems[1] ? placedItems[1].getAttribute('data-emoji') : '🚜';
+            const emoji2 = placedItems[2] ? placedItems[2].getAttribute('data-emoji') : '🍷';
+            const emoji3 = placedItems[3] ? placedItems[3].getAttribute('data-emoji') : '🚚';
+
+            // Αποθήκευση της νέας άδειας
+            const newLicense = {
+                id: Date.now(),
+                teacher: teacher,
+                student: student,
+                message: message,
+                emojis: [emoji1, emoji2, emoji3]
+            };
+
+            classArchive.unshift(newLicense);
+            localStorage.setItem('classLicenses', JSON.stringify(classArchive));
+
+            // Ενημέρωση των πεδίων της τρέχουσας άδειας
+            document.getElementById('certTeacher').innerText = teacher;
+            document.getElementById('certStudent').innerText = student;
+            document.getElementById('certMessage').innerText = `"${message}"`;
+
+            const certItemsContainer = document.getElementById('certItems');
+            certItemsContainer.innerHTML = '';
+
+            for (let i = 1; i <= 3; i++) {
+                const item = placedItems[i];
+                if (item) {
+                    const certItem = document.createElement('div');
+                    certItem.classList.add('cert-item-icon');
+                    certItem.innerText = item.getAttribute('data-emoji');
+                    certItem.title = item.getAttribute('data-title');
+                    certItemsContainer.appendChild(certItem);
+                }
+            }
+
+            // Απόκρυψη modal & εμφάνιση άδειας
+            successModal.style.display = 'none';
+            document.getElementById('certificateContainer').style.display = 'flex';
+
+            // Καθαρισμός πεδίων εισαγωγής
+            document.getElementById('teacherName').value = '';
+            document.getElementById('studentName').value = '';
+            document.getElementById('dedicationText').value = '';
+
+            renderClassArchive();
+        }
+
+        // Προβολή Άδειας από το Αρχείο
+        function viewLicense(id) {
+            const license = classArchive.find(l => l.id === id);
+            if (!license) return;
+
+            isViewingArchive = true;
+            document.getElementById('backBtn').innerText = "🔙 Επιστροφή στο Παιχνίδι";
+
+            document.getElementById('certTeacher').innerText = license.teacher;
+            document.getElementById('certStudent').innerText = license.student;
+            document.getElementById('certMessage').innerText = `"${license.message}"`;
+
+            const certItemsContainer = document.getElementById('certItems');
+            certItemsContainer.innerHTML = '';
+
+            license.emojis.forEach(emoji => {
+                const certItem = document.createElement('div');
+                certItem.classList.add('cert-item-icon');
+                certItem.innerText = emoji;
+                certItemsContainer.appendChild(certItem);
+            });
+
+            document.getElementById('certificateContainer').style.display = 'flex';
+        }
+
+        // Έξυπνη και ασφαλής μέθοδος εκτύπωσης σε PDF μέσω Popup Παραθύρου
+        function printCertificate() {
+            const certHtml = document.querySelector('.certificate').outerHTML;
+            const companyName = document.getElementById('certTeacher').innerText;
+            
+            // Άνοιγμα νέου προσωρινού παραθύρου
+            const printWindow = window.open('', '_blank', 'width=800,height=900');
+            
+            if (!printWindow) {
+                // Σε περίπτωση που ο browser μπλοκάρει τα popups, δοκιμάζουμε την κλασική fallback εκτύπωση
+                window.print();
+                return;
+            }
+
+            // Εγγραφή του κώδικα και των απαραίτητων CSS στυλ στο νέο παράθυρο
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html lang="el">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Άδεια Λειτουργίας - ${companyName}</title>
+                    <style>
+                        body {
+                            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+                            background: white;
+                            color: #1e293b;
+                            margin: 0;
+                            padding: 20px;
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            min-height: 95vh;
+                        }
+                        .certificate {
+                            max-width: 650px;
+                            width: 100%;
+                            background: #fdfdfd;
+                            border: 15px double #b45309;
+                            padding: 40px;
+                            text-align: center;
+                            box-shadow: none;
+                            position: relative;
+                            background-image: radial-gradient(circle, #fcfbe7 0%, #fefcf3 100%);
+                            box-sizing: border-box;
+                        }
+                        .cert-header-text {
+                            font-family: 'Times New Roman', Georgia, serif;
+                            font-size: 0.85rem;
+                            letter-spacing: 1.5px;
+                            color: #475569;
+                            text-transform: uppercase;
+                            margin-bottom: 4px;
+                        }
+                        .cert-title {
+                            font-family: 'Georgia', serif;
+                            font-size: 2rem;
+                            color: #78350f;
+                            margin-bottom: 20px;
+                            border-bottom: 3px double #b45309;
+                            padding-bottom: 12px;
+                        }
+                        .cert-text {
+                            font-size: 1.15rem;
+                            line-height: 1.6;
+                            color: #1e293b;
+                            margin-bottom: 20px;
+                        }
+                        .cert-items {
+                            display: flex;
+                            justify-content: center;
+                            gap: 15px;
+                            margin: 20px 0;
+                        }
+                        .cert-item-icon {
+                            font-size: 3rem;
+                            background: #fff;
+                            width: 90px;
+                            height: 90px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            border-radius: 50%;
+                            border: 3px solid #b45309;
+                            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+                        }
+                        .cert-footer {
+                            font-size: 1.05rem;
+                            font-style: italic;
+                            color: #475569;
+                            margin-top: 25px;
+                            border-top: 2px dashed #cbd5e1;
+                            padding-top: 15px;
+                        }
+                        @media print {
+                            body {
+                                padding: 0;
+                                background: white;
+                            }
+                            .certificate {
+                                border: 15px double #b45309 !important;
+                                box-shadow: none !important;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${certHtml}
+                    <script>
+                        window.onload = function() {
+                            // Μικρή καθυστέρηση για τη διασφάλιση της σωστής φόρτωσης
+                            setTimeout(function() {
+                                window.print();
+                                // Κλείσιμο του παραθύρου μετά την εκτύπωση
+                                setTimeout(function() { window.close(); }, 500);
+                            }, 300);
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+        }
+
+        function handleCertClose() {
+            if (isViewingArchive) {
+                document.getElementById('certificateContainer').style.display = 'none';
+            } else {
+                closeCertificate();
+            }
+        }
+
+        function closeCertificate() {
+            document.getElementById('certificateContainer').style.display = 'none';
+            resetMuseum();
+        }
+
+        // Κατασκευή και εμφάνιση του Αρχείου των Αδειών της Τάξης
+        function renderClassArchive() {
+            archiveGrid.innerHTML = '';
+
+            if (classArchive.length === 0) {
+                archiveGrid.innerHTML = `<p style="grid-column: 1 / -1; text-align: center; color: #64748b; font-style: italic; padding: 20px;">Δεν έχουν εκδοθεί ακόμα άδειες από άλλες ομάδες. Γίνετε οι πρώτοι!</p>`;
+                return;
+            }
+
+            classArchive.forEach(license => {
+                const card = document.createElement('div');
+                card.classList.add('archive-card');
+                card.setAttribute('onclick', `viewLicense(${license.id})`);
+
+                card.innerHTML = `
+                    <div class="archive-card-header">${escapeHTML(license.teacher)}</div>
+                    <div class="archive-card-founders">👤 Ιδρυτές: ${escapeHTML(license.student)}</div>
+                    <div class="archive-card-emojis">
+                        <div class="archive-card-emoji">${license.emojis[0] || '🚜'}</div>
+                        <div class="archive-card-emoji">${license.emojis[1] || '🍷'}</div>
+                        <div class="archive-card-emoji">${license.emojis[2] || '🚚'}</div>
+                    </div>
+                    <div class="archive-card-vision">"${escapeHTML(license.message)}"</div>
+                `;
+
+                archiveGrid.appendChild(card);
+            });
+        }
+
+        // Ασφαλής μετατροπή κειμένου
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+
+        // Καθαρισμός όλου του ιστορικού από τον εκπαιδευτικό
+        function clearArchiveHistory() {
+            if (confirm("⚠️ Είστε σίγουροι ότι θέλετε να διαγράψετε όλο το ιστορικό των αδειών της τάξης; Αυτή η ενέργεια δεν αναιρείται!")) {
+                classArchive = [];
+                localStorage.removeItem('classLicenses');
+                renderClassArchive();
+            }
+        }
+
+        // Αρχική φόρτωση του αρχείου
+        renderClassArchive();
+    </script>
+</body>
+</html>
